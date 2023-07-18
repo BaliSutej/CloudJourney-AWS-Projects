@@ -38,13 +38,14 @@ Resources:
                 Resource:
                   Fn::Sub: arn:aws:lambda:*:${AWS::AccountId}:function:*
           PolicyName: lambdainvoke
-      RoleName: !Sub "apilambda-access-role"
+      RoleName: apilambda-access-role
+
   userApi:
     Type: AWS::Serverless::Api
     DependsOn: apiRole
     Properties:
-      Name: !Sub "user-apis-${Environment}"
-      StageName: !Sub "${Environment}"
+      Name: users-api
+      StageName: dev
       AlwaysDeploy: true
       DefinitionBody:
         Fn::Transform:
@@ -52,7 +53,23 @@ Resources:
           Parameters:
             Location: apiDefinitions/swagger.yaml
 
+  userFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: userFunction
+      CodeUri: src/user/
+      Handler: app.handler
+      Runtime: nodejs16.x
+
+  lambdaRequestAuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: lambdaRequestAuthFunction
+      CodeUri: src/requestAuthFunction/
+      Handler: app.handler
+      Runtime: nodejs16.x
+
 Outputs:
   userApiEndpoint:
     Description: "API Gateway endpoint URL for User Module"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+    Value: !Sub "https://${userApi}.execute-api.${AWS::Region}.amazonaws.com/dev/"
