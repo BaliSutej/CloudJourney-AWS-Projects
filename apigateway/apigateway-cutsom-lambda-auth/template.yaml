@@ -42,7 +42,9 @@ Resources:
 
   userApi:
     Type: AWS::Serverless::Api
-    DependsOn: apiRole
+    DependsOn:
+      - apiRole
+      - lambdaRequestAuthFunction
     Properties:
       Name: users-api
       StageName: dev
@@ -52,6 +54,14 @@ Resources:
           Name: AWS::Include
           Parameters:
             Location: apiDefinitions/swagger.yaml
+  apiAuthorizerPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - userApi
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt lambdaRequestAuthFunction.Arn
+      Principal: apigateway.amazonaws.com
 
   userFunction:
     Type: AWS::Serverless::Function

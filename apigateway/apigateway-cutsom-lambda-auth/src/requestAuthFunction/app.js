@@ -37,7 +37,7 @@ exports.handler = async (event, context) => {
         // if () {
         //     return generatePolicy("user", "Deny", resource);
         // }
-        userId = userDBResponse.data.id;
+        // userId = userDBResponse.data.id;
     } catch (e) {
         // API Gateway wants this *exact* error message, otherwise it returns 500 instead of 401:
         console.log(e);
