@@ -44,7 +44,6 @@ Resources:
     Type: AWS::Serverless::Api
     DependsOn:
       - apiRole
-      - lambdaRequestAuthFunction
     Properties:
       Name: users-api
       StageName: dev
@@ -54,13 +53,22 @@ Resources:
           Name: AWS::Include
           Parameters:
             Location: apiDefinitions/swagger.yaml
-  apiAuthorizerPermission:
+  apiRequestAuthorizerPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
       - userApi
     Properties:
       Action: lambda:InvokeFunction
       FunctionName: !GetAtt lambdaRequestAuthFunction.Arn
+      Principal: apigateway.amazonaws.com
+
+  apiTokenAuthorizerPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - userApi
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt lambdaTokenAuthFunction.Arn
       Principal: apigateway.amazonaws.com
 
   userFunction:
@@ -76,6 +84,14 @@ Resources:
     Properties:
       FunctionName: lambdaRequestAuthFunction
       CodeUri: src/requestAuthFunction/
+      Handler: app.handler
+      Runtime: nodejs16.x
+
+  lambdaTokenAuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: lambdaTokenAuthFunction
+      CodeUri: src/tokenAuthFunction/
       Handler: app.handler
       Runtime: nodejs16.x
 
