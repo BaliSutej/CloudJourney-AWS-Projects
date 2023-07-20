@@ -1,0 +1,84 @@
+# This is the SAM template that represents the architecture of your serverless application
+# https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-basics.html
+
+# The AWSTemplateFormatVersion identifies the capabilities of the template
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/format-version-structure.html
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  apigateway-custom-error
+
+# Transform section specifies one or more macros that AWS CloudFormation uses to process your template
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/transform-section-structure.html
+Transform:
+  - AWS::Serverless-2016-10-31
+
+# Resources declares the AWS resources that you want to include in the stack
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resources-section-structure.html
+Resources:
+  apiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource:
+                  Fn::Sub: arn:aws:lambda:*:${AWS::AccountId}:function:*
+          PolicyName: lambdainvoke
+      RoleName: apilambda-access-role
+
+  userApi:
+    Type: AWS::Serverless::Api
+    DependsOn:
+      - apiRole
+    Properties:
+      Name: users-api
+      StageName: dev
+      AlwaysDeploy: true
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: apiDefinitions/swagger.yaml
+  apiRequestAuthorizerPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - userApi
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt lambdaRequestAuthFunction.Arn
+      Principal: apigateway.amazonaws.com
+
+  userFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: userFunction
+      CodeUri: src/user/
+      Handler: app.handler
+      Runtime: nodejs16.x
+
+  lambdaRequestAuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: lambdaRequestAuthFunction
+      CodeUri: src/requestAuthFunction/
+      Handler: app.handler
+      Runtime: nodejs16.x
+
+Outputs:
+  userApiEndpoint:
+    Description: "API Gateway endpoint URL for User Module"
+    Value: !Sub "https://${userApi}.execute-api.${AWS::Region}.amazonaws.com/dev/"
