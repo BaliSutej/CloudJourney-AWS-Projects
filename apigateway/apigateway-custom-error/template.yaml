@@ -14,6 +14,47 @@ Transform:
 
 # Resources declares the AWS resources that you want to include in the stack
 # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resources-section-structure.html
+
+Globals:
+  Api:
+    GatewayResponses:
+      UNAUTHORIZED:
+        ResponseParameters:
+          Headers:
+            Access-Control-Allow-Origin: "'*'"
+            Access-Control-Allow-Headers: "'*'"
+        ResponseTemplates:
+          "application/json": '{ "message": $context.error.errorMessage , "statusCode": "402" }'
+
+      ACCESS_DENIED:
+        ResponseParameters:
+          Headers:
+            Access-Control-Allow-Origin: "'*'"
+            Access-Control-Allow-Headers: "'*'"
+        ResponseTemplates:
+          "application/json": '{ "message": "$context.authorizer.errorMessage" , "statusCode": "$context.authorizer.errorCode" }'
+      EXPIRED_TOKEN:
+        ResponseParameters:
+          Headers:
+            Access-Control-Allow-Origin: "'*'"
+            Access-Control-Allow-Headers: "'*'"
+        ResponseTemplates:
+          "application/json": '{ "message": $context.error.errorMessage , "statusCode": "411" }'
+      DEFAULT_4XX:
+        ResponseParameters:
+          Headers:
+            Access-Control-Allow-Origin: "'*'"
+            Access-Control-Allow-Headers: "'*'"
+        ResponseTemplates:
+          "application/json": '{ "message": $context.error.errorMessage , "statusCode": "400" }'
+      DEFAULT_5XX:
+        ResponseParameters:
+          Headers:
+            Access-Control-Allow-Origin: "'*'"
+            Access-Control-Allow-Headers: "'*'"
+        ResponseTemplates:
+          "application/json": '{ "message": $context.error.errorMessage , "statusCode": "500" }'
+
 Resources:
   apiRole:
     Type: AWS::IAM::Role

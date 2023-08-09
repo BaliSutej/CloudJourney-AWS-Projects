@@ -35,7 +35,7 @@ exports.handler = async (event, context) => {
     try {
 
         if (userId > 10) {
-            return generatePolicy("user", "Deny", resource);
+            return generatePolicy("user", "Deny", resource, { isError: true, message: "Invalid User test", code: "401" });
         }
 
     } catch (e) {
@@ -44,11 +44,11 @@ exports.handler = async (event, context) => {
         throw new Error("Unauthorized");
     }
 
-    return generatePolicy("user", "Allow", resource, userId);
+    return generatePolicy("user", "Allow", resource, { isError: false }, userId);
 };
 
 // Help function to generate an IAM policy
-var generatePolicy = function (principalId, effect, resource, userId) {
+var generatePolicy = function (principalId, effect, resource, customError, userId) {
     var authResponse = {};
 
     authResponse.principalId = principalId;
@@ -68,5 +68,13 @@ var generatePolicy = function (principalId, effect, resource, userId) {
     authResponse.context = {
         userId: userId
     };
+
+    if (customError.isError) {
+        authResponse.context = {
+            errorMessage: customError.message,
+            errorCode: customError.code
+        };
+    }
+
     return authResponse;
 };
