@@ -53,6 +53,23 @@ Resources:
           Name: AWS::Include
           Parameters:
             Location: apiDefinitions/swagger.yaml
+
+  productApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Auth:
+        #DefaultAuthorizer: ProductApiLambdaTokenAuthorizer
+        Authorizers:
+          ProductApiLambdaTokenAuthorizer:
+            FunctionArn: !GetAtt lambdaTokenAuthFunction.Arn
+          ProductApiLambdaRequestAuthorizer:
+            FunctionArn: !GetAtt lambdaRequestAuthFunction.Arn
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: apiDefinitions/product_swagger.yaml
+
   apiRequestAuthorizerPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
@@ -76,6 +93,14 @@ Resources:
     Properties:
       FunctionName: userFunction
       CodeUri: src/user/
+      Handler: app.handler
+      Runtime: nodejs16.x
+
+  productFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: productFunction
+      CodeUri: src/product/
       Handler: app.handler
       Runtime: nodejs16.x
 
