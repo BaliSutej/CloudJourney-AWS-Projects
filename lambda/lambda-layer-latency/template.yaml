@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  lambda-layer-latency
+
+  Sample SAM Template for lambda-layer-latency
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 128
+    Tracing: Active
+  Api:
+    TracingEnabled: True
+
+Resources:
+  lambda1PackageInLambda:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      FunctionName: lambda1-package-in-lambda
+      CodeUri: lambda1-package-in-lambda/
+      Handler: app.lambdaHandler
+      Runtime: nodejs16.x
+      Architectures:
+        - x86_64
+
+  lambda2PackageInLayer:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      FunctionName: lambda2-package-in-layer
+      CodeUri: lambda2-package-in-layer/
+      Handler: app.lambdaHandler
+      Runtime: nodejs16.x
+      Architectures:
+        - x86_64
+
+  lambda3NoLayerNoUtilImport:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      FunctionName: lambda3-no-layer-no-util-import
+      CodeUri: lambda3-no-layer-no-util-import/
+      Handler: app.lambdaHandler
+      Runtime: nodejs16.x
+      Architectures:
+        - x86_64
+
+  lambda4WithLayerWithUtilImport:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      FunctionName: lambda4-with-layer-with-util-import
+      CodeUri: lambda4-with-layer-with-util-import/
+      Handler: app.lambdaHandler
+      Runtime: nodejs16.x
+      Architectures:
+        - x86_64
+
+  lambda5WithLayerNoUtilImport:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      FunctionName: lambda5-with-layer-no-util-import
+      CodeUri: lambda5-with-layer-no-util-import/
+      Handler: app.lambdaHandler
+      Runtime: nodejs16.x
+      Architectures:
+        - x86_64
