@@ -34,6 +34,8 @@ Resources:
       Runtime: nodejs16.x
       Architectures:
         - x86_64
+      Layers:
+        - !Ref nodePackageLambdaLayer
 
   lambda3NoLayerNoUtilImport:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -54,6 +56,8 @@ Resources:
       Runtime: nodejs16.x
       Architectures:
         - x86_64
+      Layers:
+        - !Ref utilsLambdaLayer
 
   lambda5WithLayerNoUtilImport:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -64,3 +68,31 @@ Resources:
       Runtime: nodejs16.x
       Architectures:
         - x86_64
+      Layers:
+        - !Ref utilsLambdaLayer
+
+  nodePackageLambdaLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      CompatibleArchitectures:
+        - x86_64
+      CompatibleRuntimes:
+        - nodejs16.x
+      ContentUri: node-package/
+      Description: Lambda layer for node modules
+      LayerName: node-package-layer
+    Metadata:
+      BuildMethod: nodejs16.x
+
+  utilsLambdaLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      CompatibleArchitectures:
+        - x86_64
+      CompatibleRuntimes:
+        - nodejs16.x
+      ContentUri: utils/
+      Description: Lambda layer for utils
+      LayerName:
+    Metadata:
+      BuildMethod: nodejs16.x

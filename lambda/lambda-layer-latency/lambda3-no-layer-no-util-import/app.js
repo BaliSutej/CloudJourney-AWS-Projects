@@ -20,8 +20,7 @@ exports.lambdaHandler = async (event, context) => {
         response = {
             'statusCode': 200,
             'body': JSON.stringify({
-                message: 'hello world',
-                // location: ret.data.trim()
+                message: 'Lambda 3 - No Layer - No Util Import',
             })
         }
     } catch (err) {
