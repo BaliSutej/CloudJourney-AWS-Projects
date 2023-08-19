@@ -29,16 +29,31 @@ const queryDatabase = async (region, params) => {
  * @param {string} region 
  * @param {object} params 
  * response 
- * { 
-    transactionId: "STRING_VALUE",
-    };
+ * {
+ *      success: boolean,
+ *      transactionId: number
+ * }
  */
-const beginTransaction = async (region, params) => {
+const beginTransaction = async (region, resourceArn, secretArn, database) => {
     try {
         const client = new RDSDataClient({ region: region });
 
-        const command = new BeginTransactionCommand(params);
-        return await client.send(command);
+        const command = new BeginTransactionCommand({
+            resourceArn: resourceArn,
+            secretArn: secretArn,
+            database: database,
+        });
+        let response = await client.send(command);
+        if (response.$metadata.httpStatusCode === 200) {
+            return {
+                success: true,
+                transactionId: response.transactionId
+            }
+        } else {
+            return {
+                success: false
+            }
+        }
 
     } catch (error) {
         console.info("Error Occurred");
@@ -53,12 +68,25 @@ const beginTransaction = async (region, params) => {
  * @param {object} params 
  * @returns "{ transactionStatus: "STRING_VALUE"}"
  */
-const commitTransaction = async (region, params) => {
+const commitTransaction = async (region, resourceArn, secretArn, transactionId) => {
     try {
         const client = new RDSDataClient({ region: region });
 
-        const command = new CommitTransactionCommand(input);
-        return await client.send(command);
+        const command = new CommitTransactionCommand({
+            resourceArn: resourceArn,
+            secretArn: secretArn,
+            transactionId: transactionId
+        });
+        let response = await client.send(command);
+        if (response.$metadata.httpStatusCode === 200) {
+            return {
+                success: true
+            }
+        } else {
+            return {
+                success: false
+            }
+        }
     } catch (error) {
         console.info("Error Occurred");
         console.error(error);
@@ -72,13 +100,25 @@ const commitTransaction = async (region, params) => {
  * @param {object} params 
  * @returns "{ transactionStatus: "STRING_VALUE"}"
  */
-const rollbackTransaction = async (region, params) => {
+const rollbackTransaction = async (region, resourceArn, secretArn, transactionId) => {
     try {
         const client = new RDSDataClient({ region: region });
 
-        const command = new RollbackTransactionCommand(params);
-        return await client.send(command);
-
+        const command = new RollbackTransactionCommand({
+            resourceArn: resourceArn,
+            secretArn: secretArn,
+            transactionId: transactionId
+        });
+        let response = await client.send(command);
+        if (response.$metadata.httpStatusCode === 200) {
+            return {
+                success: true
+            }
+        } else {
+            return {
+                success: false
+            }
+        }
     } catch (error) {
         console.info("Error Occurred");
         console.error(error);
@@ -86,40 +126,10 @@ const rollbackTransaction = async (region, params) => {
     }
 }
 
-/**
- * gives parameter object used to query
- * @param {string} sql
- * @param {string} secretArn
- * @param {string} database
- * @param {string} resourceArn
- * @returns {Object} params object
- */
-function generateParams(sql, secretArn, database, resourceArn, paramSet) {
-    let param;
-    if (paramSet) {
-        param = {
-            secretArn: secretArn,
-            database: database,
-            resourceArn: resourceArn,
-            sql: sql,
-            parameterSets: paramSet
-        };
-    } else {
-        param = {
-            secretArn: secretArn,
-            database: database,
-            resourceArn: resourceArn,
-            sql: sql,
-            formatRecordsAs: "JSON"
-        };
-    }
-    return param;
-}
 
 module.exports = {
     queryDatabase,
     beginTransaction,
     commitTransaction,
-    rollbackTransaction,
-    generateParams
+    rollbackTransaction
 };
