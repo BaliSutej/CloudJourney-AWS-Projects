@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  transaction-data-api
+
+  Sample SAM Template for transaction-data-api
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+
+Resources:
+  accountFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      FunctionName: account-lambda
+      CodeUri: account/
+      Handler: app.lambdaHandler
+      Runtime: nodejs16.x
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          secretsArn: "{{resolve:ssm:/transactionDataApi/SecretArn}}"
+          databaseName: "{{resolve:ssm:/transactionDataApi/DBName}}"
+          clusterArn: "{{resolve:ssm:/transactionDataApi/ClusterArn}}"
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Sid: SecretsManagerDbCredentialsAccess
+              Action:
+                - "secretsmanager:GetSecretValue"
+              Resource: "arn:aws:secretsmanager:*:*:secret:/transactionDataApi*"
+            - Effect: Allow
+              Sid: RDSDataServiceAccess
+              Action:
+                - "rds-data:BatchExecuteStatement"
+                - "rds-data:BeginTransaction"
+                - "rds-data:CommitTransaction"
+                - "rds-data:ExecuteStatement"
+                - "rds-data:ExecuteSql"
+                - "rds-data:RollbackTransaction"
+              Resource: "{{resolve:ssm:/transactionDataApi/ClusterArn}}"
