@@ -1,0 +1,201 @@
+# This is the SAM template that represents the architecture of your serverless application
+# https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-basics.html
+
+# The AWSTemplateFormatVersion identifies the capabilities of the template
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/format-version-structure.html
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  lambda-with-elastic-ip
+
+# Transform section specifies one or more macros that AWS CloudFormation uses to process your template
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/transform-section-structure.html
+Transform:
+  - AWS::Serverless-2016-10-31
+
+# Resources declares the AWS resources that you want to include in the stack
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resources-section-structure.html
+Resources:
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  artVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: "172.32.0.0/24"
+      Tags:
+        - Key: "name"
+          Value: "artVPC"
+
+  Subnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref MyVPC
+      CidrBlock: "10.0.0.0/24"
+      AvailabilityZone: "us-west-2a"
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: MySubnet1
+
+  MySubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref MyVPC
+      CidrBlock: "10.0.1.0/24"
+      AvailabilityZone: "us-west-2b"
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: MySubnet2
+
+  artPrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: "us-west-2a"
+      VpcId: !Ref artVPC
+      CidrBlock: "10.0.0.32/28"
+      Tags:
+        - Key: name
+          Value: artPrivateSubnet
+    DependsOn:
+      - artVPC
+
+  artPublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: "us-east-1a"
+      VpcId: !Ref artVPC
+      CidrBlock: "10.0.0.0/28"
+      Tags:
+        - Key: name
+          Value: artPublicSubnet
+    DependsOn:
+      - artVPC
+
+  artElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      NetworkBorderGroup: "us-east-1"
+      Tags:
+        - Key: name
+          Value: artElasticIP
+
+  artInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: name
+          Value: artInternetGateway
+
+  artAttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+        Ref: artVPC
+      InternetGatewayId:
+        Ref: artInternetGateway
+
+  artNatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt artElasticIP.AllocationId
+      ConnectivityType: public
+      SubnetId: !Ref artPublicSubnet
+      Tags:
+        - Key: name
+          Value: artNatGateway
+
+  artPublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: artVPC
+      Tags:
+        - Key: name
+          Value: artPublicRouteTable
+
+  artPublicRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId:
+        Ref: artInternetGateway
+      # NatGatewayId: String
+      RouteTableId:
+        Ref: artPublicRouteTable
+
+  artPublicRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: artPublicRouteTable
+      SubnetId:
+        Ref: artPublicSubnet
+
+  artPrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: artVPC
+      Tags:
+        - Key: name
+          Value: artPrivateRouteTable
+
+  artPrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId:
+        Ref: artNatGateway
+      RouteTableId:
+        Ref: artPrivateRouteTable
+
+  artPrivateRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: artPrivateRouteTable
+      SubnetId:
+        Ref: artPrivateSubnet
+
+  artOutboundOnlySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "ArtOutboundOnlySecurityGroup"
+      GroupDescription: "Security Group that allows outbound traffic only"
+      VpcId: !Ref artVPC
+      SecurityGroupEgress:
+        - CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+
+  # This is a Lambda function config associated with the source code: hello-from-lambda.js
+  helloFromLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/call-api.handler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: A Lambda function that returns a static string.
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      VpcConfig:
+        SubnetIds:
+          - !Ref artPrivateSubnet
+        SecurityGroupIds:
+          - !Ref artOutboundOnlySecurityGroup
+
+  printIPFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/print-ip-lambda.handler
+      Runtime: nodejs18.x
+      Events:
+        MyGetApi:
+          Type: Api
+          Properties:
+            Path: /print-ip-api
+            Method: get
